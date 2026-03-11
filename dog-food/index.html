@@ -455,20 +455,57 @@ const DER_FACTORS = {
 const ACTIVITY_MULT = { low: 0.85, normal: 1.0, high: 1.2 };
 
 // ═══════════════════════════════════════
-// 食譜範本
+// 食譜範本（依生命階段分組）
 // ═══════════════════════════════════════
-const PRESETS = {
-  chickenHigh: { name:'🍗 高蛋白雞胸餐', desc:'蛋白質 ≥50%、低脂、好消化',
-    items: [['雞胸肉（去皮）',400],['南瓜',200],['高麗菜',150],['糙米飯（熟）',130],['魚油',3],['橄欖油',4]] },
-  salmon: { name:'🐟 鮭魚護腦餐', desc:'富含 Omega-3、護腦護關節',
-    items: [['鮭魚',250],['花椰菜',200],['紅蘿蔔',150],['馬鈴薯（蒸熟）',200],['橄欖油',3]] },
-  beef: { name:'🥩 牛肉高纖餐', desc:'鐵質豐富、纖維充足',
-    items: [['牛腱肉',350],['四季豆',150],['白蘿蔔',200],['地瓜',120],['魚油',3],['橄欖油',3]] },
-  codLowFat: { name:'🐠 低脂鱈魚餐', desc:'極低脂、適合嚴格減重期',
-    items: [['鱈魚',450],['南瓜',200],['四季豆',150],['馬鈴薯（蒸熟）',200],['橄欖油',5],['魚油',3]] },
-  mixed: { name:'🥚 多元蛋白餐', desc:'雞肉+蛋+豆腐，營養多元',
-    items: [['雞胸肉（去皮）',200],['水煮蛋',100],['板豆腐',100],['南瓜',150],['花椰菜',150],['糙米飯（熟）',100],['魚油',3]] },
+const STAGE_PRESETS = {
+  puppy: {
+    puppy_chicken: { name:'🍗 幼犬成長雞肉餐', desc:'高蛋白高鈣、支持骨骼肌肉發育',
+      items: [['雞胸肉（去皮）',200],['水煮蛋',100],['南瓜',100],['糙米飯（熟）',120],['橄欖油',5],['魚油',2]] },
+    puppy_mixed: { name:'🥚 幼犬多元蛋白餐', desc:'雞肉+蛋+豆腐，鈣質來源豐富',
+      items: [['雞胸肉（去皮）',150],['水煮蛋',80],['板豆腐',100],['紅蘿蔔',80],['地瓜',100],['魚油',2]] },
+    puppy_beef: { name:'🥩 幼犬牛肉活力餐', desc:'鐵質豐富、能量密度高',
+      items: [['牛腱肉',200],['水煮蛋',80],['南瓜',100],['馬鈴薯（蒸熟）',120],['橄欖油',5],['魚油',2]] },
+    puppy_salmon: { name:'🐟 幼犬鮭魚聰明餐', desc:'DHA 護腦+視力發育',
+      items: [['鮭魚',180],['板豆腐',80],['花椰菜',100],['糙米飯（熟）',100],['橄欖油',3]] },
+  },
+  adult: {
+    adult_chicken: { name:'🍗 均衡雞胸餐', desc:'蛋白質充足、營養均衡',
+      items: [['雞胸肉（去皮）',300],['南瓜',180],['高麗菜',150],['糙米飯（熟）',150],['魚油',3],['橄欖油',4]] },
+    adult_salmon: { name:'🐟 鮭魚活力餐', desc:'Omega-3 護膚毛、抗發炎',
+      items: [['鮭魚',250],['花椰菜',200],['紅蘿蔔',150],['馬鈴薯（蒸熟）',200],['橄欖油',3]] },
+    adult_beef: { name:'🥩 牛肉體態餐', desc:'鐵質豐富、維持肌肉',
+      items: [['牛腱肉',300],['四季豆',150],['白蘿蔔',200],['地瓜',150],['魚油',3],['橄欖油',3]] },
+    adult_mixed: { name:'🥚 多元蛋白餐', desc:'雞肉+蛋+豆腐，來源多元',
+      items: [['雞胸肉（去皮）',200],['水煮蛋',100],['板豆腐',100],['南瓜',150],['花椰菜',150],['糙米飯（熟）',120],['魚油',3]] },
+  },
+  mature: {
+    mature_chicken: { name:'🍗 熟齡高蛋白餐', desc:'增加蛋白質、開始控脂',
+      items: [['雞胸肉（去皮）',380],['南瓜',200],['花椰菜',150],['糙米飯（熟）',120],['魚油',3],['橄欖油',3]] },
+    mature_salmon: { name:'🐟 熟齡護關節餐', desc:'Omega-3 護關節、抗氧化',
+      items: [['鮭魚',250],['花椰菜',200],['紅蘿蔔',150],['馬鈴薯（蒸熟）',180],['橄欖油',3]] },
+    mature_lowfat: { name:'🐠 熟齡低脂鱈魚餐', desc:'極低脂、適合開始控制體重',
+      items: [['鱈魚',400],['南瓜',200],['四季豆',150],['馬鈴薯（蒸熟）',180],['橄欖油',5],['魚油',3]] },
+    mature_beef: { name:'🥩 熟齡牛肉高纖餐', desc:'鐵質+高纖維、飽足感強',
+      items: [['牛腱肉',350],['四季豆',150],['白蘿蔔',200],['地瓜',100],['魚油',3],['橄欖油',3]] },
+  },
+  senior: {
+    senior_chicken: { name:'🍗 高齡高蛋白餐', desc:'高蛋白防肌少、低脂好消化',
+      items: [['雞胸肉（去皮）',400],['南瓜',200],['高麗菜',150],['糙米飯（熟）',130],['魚油',3],['橄欖油',4]] },
+    senior_salmon: { name:'🐟 高齡護腦餐', desc:'Omega-3 護腦+護關節',
+      items: [['鮭魚',250],['花椰菜',200],['紅蘿蔔',150],['馬鈴薯（蒸熟）',200],['橄欖油',3]] },
+    senior_lowfat: { name:'🐠 高齡嚴格減重餐', desc:'極低脂、高纖維、飽足感強',
+      items: [['鱈魚',450],['南瓜',200],['四季豆',150],['馬鈴薯（蒸熟）',200],['橄欖油',5],['魚油',3]] },
+    senior_mixed: { name:'🥚 高齡多元蛋白餐', desc:'多種蛋白來源、好吸收',
+      items: [['雞胸肉（去皮）',200],['水煮蛋',100],['板豆腐',100],['南瓜',150],['花椰菜',150],['糙米飯（熟）',100],['魚油',3]] },
+    senior_beef: { name:'🥩 高齡牛肉高纖餐', desc:'鐵質豐富、纖維充足',
+      items: [['牛腱肉',350],['四季豆',150],['白蘿蔔',200],['地瓜',120],['魚油',3],['橄欖油',3]] },
+  },
 };
+
+// 取得當前階段的食譜
+function getCurrentPresets() {
+  return STAGE_PRESETS[currentStage] || STAGE_PRESETS.adult;
+}
 
 const FOOD_NAMES = Object.keys(FOODS);
 let rows = [], rowId = 0, activePreset = null, currentStage = 'adult';
@@ -533,6 +570,10 @@ function updateStage() {
   // update nutri desc
   document.getElementById('nutriDesc').textContent =
     `依據 NRC / AAFCO 標準，${stage.label}的建議範圍（以鮮食部分計算）`;
+
+  // refresh recipe grid for current life stage
+  buildRecipeGrid();
+  activePreset = null;
 }
 
 function renderSupplements() {
@@ -646,7 +687,7 @@ function removeRow(id) {
 }
 
 function loadPreset(key) {
-  const pr = PRESETS[key]; if(!pr) return;
+  const pr = getCurrentPresets()[key]; if(!pr) return;
   document.getElementById('ingredientList').innerHTML = ''; rows = []; rowId = 0; activePreset = key;
   document.querySelectorAll('.recipe-card').forEach(el => el.classList.remove('active'));
   const card = document.getElementById(`rc-${key}`); if(card) card.classList.add('active');
@@ -655,7 +696,7 @@ function loadPreset(key) {
 }
 
 function buildRecipeGrid() {
-  document.getElementById('recipeGrid').innerHTML = Object.entries(PRESETS).map(([k,r]) => {
+  document.getElementById('recipeGrid').innerHTML = Object.entries(getCurrentPresets()).map(([k,r]) => {
     let kcal = 0; r.items.forEach(([n,g]) => { if(FOODS[n]) kcal += FOODS[n].kcal*g/100; });
     return `<div class="recipe-card" id="rc-${k}" onclick="loadPreset('${k}')"><div class="recipe-name">${r.name}</div><div class="recipe-desc">${r.desc}</div><div class="recipe-kcal">~${Math.round(kcal)} kcal</div></div>`;
   }).join('');
@@ -857,7 +898,8 @@ function init() {
   buildOptions(); buildRefTable(); buildRecipeGrid();
   const p=getProfiles(),aid=getActiveDogId();
   if(aid&&p[aid])loadDogProfile(aid);else if(Object.keys(p).length>0)loadDogProfile(Object.keys(p)[0]);else addNewDog();
-  loadPreset('chickenHigh');
+  const firstKey = Object.keys(getCurrentPresets())[0];
+  if (firstKey) loadPreset(firstKey);
 }
 
 init();
