@@ -34,6 +34,8 @@
   .sources-card a:hover { text-decoration: underline; }
   .disclaimer { margin-top: 16px; padding: 12px; background: #fef9ef; border: 1px solid #f5e6d3; border-radius: 8px; font-size: 0.75rem; color: var(--text); line-height: 1.7; }
   .update-date { display: inline-block; margin-top: 6px; font-size: 0.7rem; color: var(--text-light); }
+  .btn-apply-kcal { display: inline-block; padding: 2px 10px; margin-left: 4px; font-size: 0.72rem; font-weight: 600; color: #fff; background: var(--accent); border: none; border-radius: 12px; cursor: pointer; vertical-align: middle; }
+  .btn-apply-kcal:hover { background: #c27a2e; }
 
   /* toggle */
   .toggle-row { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
@@ -196,7 +198,7 @@
     </div>
     <div class="field">
       <label>每日熱量上限 (kcal)</label>
-      <input type="number" id="dailyKcal" placeholder="請諮詢獸醫" step="10" min="50" oninput="saveDogProfile(); calculate()">
+      <input type="number" id="dailyKcal" placeholder="填入體重後自動建議" step="10" min="50" oninput="saveDogProfile(); calculate()">
     </div>
     <div class="field">
       <label>每日餐數</label>
@@ -567,15 +569,41 @@ function updateStage() {
     const rer = 70 * Math.pow(weight, 0.75);
     const status = neutered ? 'neutered' : 'intact';
     const der = rer * DER_FACTORS[currentStage][status] * ACTIVITY_MULT[activity];
-    document.getElementById('kcalSuggest').style.display = 'block';
-    document.getElementById('kcalSuggest').textContent =
-      `💡 建議每日熱量約 ${Math.round(der)} kcal（RER ${Math.round(rer)} × 係數，僅供參考，請以獸醫建議為準）`;
+    const derRound = Math.round(der / 10) * 10;
+    const suggestEl = document.getElementById('kcalSuggest');
+    suggestEl.style.display = 'block';
+    suggestEl.innerHTML =
+      `💡 建議每日熱量約 <strong>${derRound} kcal</strong>（RER ${Math.round(rer)} × 係數） ` +
+      `<button onclick="applySuggestedKcal(${derRound})" class="btn-apply-kcal">套用此建議</button>` +
+      `<br><span style="font-size:0.7rem;color:var(--text-light)">僅供參考，請以獸醫建議為準。有目標體重時建議以目標體重計算。</span>`;
+
+    // 如果飼主還沒填每日熱量，自動帶入建議值
+    const kcalInput = document.getElementById('dailyKcal');
+    if (!kcalInput.value) {
+      kcalInput.value = derRound;
+      kcalInput.style.borderColor = 'var(--accent)';
+      saveDogProfile();
+      calculate();
+    }
   } else {
     document.getElementById('kcalSuggest').style.display = 'none';
   }
 
   // update supplements
   renderSupplements();
+
+  // 如果有目標體重，額外顯示以目標體重計算的建議
+  const targetW = parseFloat(document.getElementById('targetWeight').value);
+  if (targetW > 0 && weight > 0 && targetW < weight) {
+    const rerTarget = 70 * Math.pow(targetW, 0.75);
+    const status2 = neutered ? 'neutered' : 'intact';
+    const derTarget = rerTarget * DER_FACTORS[currentStage][status2] * ACTIVITY_MULT[activity];
+    const derTargetRound = Math.round(derTarget / 10) * 10;
+    const suggestEl = document.getElementById('kcalSuggest');
+    suggestEl.innerHTML +=
+      `<br><span style="color:var(--danger);font-size:0.78rem;">🎯 以目標體重 ${targetW}kg 計算：約 <strong>${derTargetRound} kcal</strong>/天</span> ` +
+      `<button onclick="applySuggestedKcal(${derTargetRound})" class="btn-apply-kcal">套用減重值</button>`;
+  }
 
   // update nutri desc
   document.getElementById('nutriDesc').textContent =
@@ -584,6 +612,15 @@ function updateStage() {
   // refresh recipe grid for current life stage
   buildRecipeGrid();
   activePreset = null;
+}
+
+function applySuggestedKcal(val) {
+  const input = document.getElementById('dailyKcal');
+  input.value = val;
+  input.style.borderColor = 'var(--accent)';
+  setTimeout(() => { input.style.borderColor = ''; }, 1500);
+  saveDogProfile();
+  calculate();
 }
 
 function renderSupplements() {
