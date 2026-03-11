@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐕 狗狗鮮食熱量計算機</title>
+<style>
+  :root {
+    --bg: #faf8f5; --card: #fff; --accent: #d4883a; --accent-light: #f5e6d3;
+    --text: #3d3225; --text-light: #8a7d6b; --border: #e8e0d4;
+    --danger: #c0392b; --success: #27ae60; --warning: #f39c12;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 16px; max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: var(--text-light); font-size: 0.85rem; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-size: 0.8rem; font-weight: 600; color: var(--text-light); }
+  input, select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; background: var(--bg); color: var(--text); }
+  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+  .hint { font-size: 0.72rem; color: var(--text-light); margin-top: 8px; }
+
+  /* toggle */
+  .toggle-row { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
+  .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 24px; transition: 0.3s; }
+  .toggle .slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
+  .toggle input:checked + .slider { background: var(--accent); }
+  .toggle input:checked + .slider:before { transform: translateX(20px); }
+
+  /* life stage card */
+  .stage-card { padding: 12px; border-radius: 10px; margin-top: 12px; }
+  .stage-card .stage-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+  .stage-card .stage-desc { font-size: 0.78rem; line-height: 1.6; }
+  .stage-card .stage-macros { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .stage-card .macro-badge { padding: 3px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; background: rgba(255,255,255,0.7); }
+  .stage-puppy { background: #e8f5e9; border: 1px solid #a5d6a7; }
+  .stage-adult { background: #e3f2fd; border: 1px solid #90caf9; }
+  .stage-mature { background: #fff8e1; border: 1px solid #ffe082; }
+  .stage-senior { background: #fce4ec; border: 1px solid #ef9a9a; }
+
+  .kcal-suggest { font-size: 0.78rem; color: var(--accent); margin-top: 6px; font-weight: 600; }
+
+  /* calorie bar */
+  .calorie-bar-wrap { margin-top: 8px; }
+  .calorie-bar-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; }
+  .calorie-bar { height: 24px; background: #eee; border-radius: 12px; overflow: hidden; position: relative; }
+  .calorie-bar-fill { height: 100%; border-radius: 12px; transition: width 0.3s, background 0.3s; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #fff; min-width: 40px; }
+
+  /* ingredients */
+  .ingredient-row { display: grid; grid-template-columns: 1fr 80px 60px 40px; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .ingredient-row.header { font-size: 0.75rem; font-weight: 600; color: var(--text-light); margin-bottom: 2px; }
+  .ingredient-row select, .ingredient-row input { padding: 6px 8px; font-size: 0.85rem; }
+  .ingredient-kcal { text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+  .btn-remove { background: none; border: none; color: var(--danger); font-size: 1.1rem; cursor: pointer; padding: 4px; border-radius: 6px; }
+  .btn-remove:hover { background: #fdecea; }
+  .btn-add { background: var(--accent-light); color: var(--accent); border: 1px dashed var(--accent); border-radius: 8px; padding: 8px; width: 100%; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 4px; }
+  .btn-add:hover { background: #f0d9be; }
+
+  /* summary */
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .summary-item { text-align: center; padding: 8px 4px; background: var(--bg); border-radius: 8px; }
+  .summary-item .value { font-size: 1.2rem; font-weight: 700; }
+  .summary-item .unit { font-size: 0.7rem; color: var(--text-light); }
+  .summary-item .label { font-size: 0.7rem; color: var(--text-light); font-weight: 400; }
+
+  .meal-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
+  .meal-card { background: var(--bg); border-radius: 8px; padding: 10px; text-align: center; }
+  .meal-card .meal-name { font-size: 0.8rem; color: var(--text-light); margin-bottom: 4px; }
+  .meal-card .meal-kcal { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+  .meal-card .meal-grams { font-size: 0.75rem; color: var(--text-light); margin-top: 2px; }
+
+  .status { padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; margin-top: 10px; font-weight: 500; }
+  .status.ok { background: #e8f8e8; color: #1a7a1a; }
+  .status.over { background: #fdecea; color: var(--danger); }
+  .status.under { background: #fff8e1; color: #b8860b; }
+
+  /* recipes */
+  .recipe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .recipe-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
+  .recipe-card:hover { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+  .recipe-card.active { border-color: var(--accent); background: var(--accent-light); }
+  .recipe-card .recipe-name { font-size: 0.82rem; font-weight: 700; margin-bottom: 2px; }
+  .recipe-card .recipe-desc { font-size: 0.7rem; color: var(--text-light); margin-bottom: 4px; }
+  .recipe-card .recipe-kcal { font-size: 0.72rem; color: var(--accent); font-weight: 600; }
+
+  /* nutrition assessment */
+  .nutri-row { display: grid; grid-template-columns: 90px 1fr 70px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .nutri-label { font-size: 0.8rem; font-weight: 600; }
+  .nutri-bar-bg { height: 18px; background: #eee; border-radius: 9px; overflow: hidden; position: relative; }
+  .nutri-bar-fill { height: 100%; border-radius: 9px; transition: width 0.3s; min-width: 2px; }
+  .nutri-bar-target { position: absolute; top: 0; height: 100%; width: 2px; background: #333; opacity: 0.4; }
+  .nutri-value { font-size: 0.78rem; text-align: right; color: var(--text-light); }
+  .nutri-range { font-size: 0.7rem; color: var(--text-light); margin-top: -4px; margin-bottom: 4px; padding-left: 98px; }
+  .macro-pie { display: flex; align-items: center; gap: 12px; margin-top: 8px; margin-bottom: 12px; }
+  .macro-pie canvas { flex-shrink: 0; }
+  .macro-legend { font-size: 0.78rem; line-height: 1.8; }
+  .macro-legend span { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+
+  /* supplements */
+  .supplement-list { list-style: none; padding: 0; }
+  .supplement-list li { padding: 8px 10px; background: var(--bg); border-radius: 8px; margin-bottom: 6px; font-size: 0.82rem; display: flex; gap: 8px; align-items: flex-start; }
+  .supplement-list .icon { flex-shrink: 0; width: 20px; text-align: center; }
+  .tag { display: inline-block; font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 600; margin-left: 4px; }
+  .tag-essential { background: #fdecea; color: var(--danger); }
+  .tag-recommend { background: #fff8e1; color: #b8860b; }
+  .disclaimer { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #b8860b; margin-bottom: 16px; }
+
+  /* google sheets */
+  .btn-submit { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 12px; width: 100%; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
+  .btn-submit:hover { opacity: 0.9; }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .log-msg { text-align: center; font-size: 0.82rem; margin-top: 8px; padding: 6px; border-radius: 6px; }
+  .setup-code { background: #1e1e1e; color: #d4d4d4; border-radius: 8px; padding: 12px; font-size: 0.72rem; font-family: 'SF Mono', Menlo, monospace; overflow-x: auto; white-space: pre; margin: 8px 0; line-height: 1.5; }
+  .btn-copy { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; color: var(--text); }
+  .btn-copy:hover { background: var(--accent-light); }
+
+  /* dog profile tabs */
+  .dog-profile-bar { display: flex; gap: 6px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .dog-tab { padding: 5px 12px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg); font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .dog-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .dog-tab .del { font-size: 0.7rem; opacity: 0.6; margin-left: 2px; }
+  .dog-tab .del:hover { opacity: 1; }
+  .btn-add-dog { padding: 5px 10px; border-radius: 16px; border: 1px dashed var(--accent); background: none; color: var(--accent); font-size: 0.8rem; cursor: pointer; font-weight: 600; }
+
+  .food-ref { margin-top: 12px; font-size: 0.75rem; color: var(--text-light); }
+  .food-ref summary { cursor: pointer; font-weight: 600; font-size: 0.8rem; }
+  .food-ref table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .food-ref th, .food-ref td { padding: 4px 6px; text-align: right; border-bottom: 1px solid var(--border); }
+  .food-ref th:first-child, .food-ref td:first-child { text-align: left; }
+
+  footer { text-align: center; font-size: 0.75rem; color: var(--text-light); margin-top: 24px; padding-bottom: 20px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>🐕 狗狗鮮食熱量計算機</h1>
+<p class="subtitle">控制體重，從每一餐開始</p>
+<div class="disclaimer">⚠️ 本工具僅供參考，不能取代獸醫師的專業建議。請定期帶狗狗回診追蹤體重與健康狀況。</div>
+
+<!-- 狗狗資訊 -->
+<div class="card">
+  <h2>🐾 狗狗資訊</h2>
+  <div class="dog-profile-bar" id="dogProfileBar"></div>
+  <div class="grid2">
+    <div class="field full">
+      <label>狗狗名字</label>
+      <input type="text" id="dogName" placeholder="例：旺旺" oninput="saveDogProfile()">
+    </div>
+    <div class="field">
+      <label>年齡（歲）</label>
+      <input type="number" id="dogAge" placeholder="例：14" step="0.5" min="0" max="25" oninput="saveDogProfile(); updateStage(); calculate()">
+    </div>
+    <div class="field">
+      <label>目前體重 (kg)</label>
+      <input type="number" id="currentWeight" placeholder="例：31" step="0.1" min="0.5" oninput="saveDogProfile(); updateStage(); calculate()">
+    </div>
+    <div class="field">
+      <label>目標體重 (kg)</label>
+      <input type="number" id="targetWeight" placeholder="例：29" step="0.1" min="0.5" oninput="saveDogProfile(); calculate()">
+    </div>
+    <div class="field">
+      <label>運動量</label>
+      <select id="activityLevel" onchange="saveDogProfile(); updateStage(); calculate()">
+        <option value="low">低（散步為主/高齡）</option>
+        <option value="normal" selected>一般（每日 30~60 分鐘）</option>
+        <option value="high">高（每日 1 小時以上）</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>是否結紮</label>
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="isNeutered" onchange="saveDogProfile(); updateStage(); calculate()">
+          <span class="slider"></span>
+        </label>
+        <span style="font-size:0.85rem;" id="neuteredLabel">未結紮</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>每日熱量上限 (kcal)</label>
+      <input type="number" id="dailyKcal" placeholder="請諮詢獸醫" step="10" min="50" oninput="saveDogProfile(); calculate()">
+    </div>
+    <div class="field">
+      <label>每日餐數</label>
+      <select id="mealsPerDay" onchange="saveDogProfile(); calculate()">
+        <option value="2">2 餐</option>
+        <option value="3">3 餐</option>
+      </select>
+    </div>
+  </div>
+  <div id="kcalSuggest" class="kcal-suggest" style="display:none;"></div>
+  <div id="stageCard"></div>
+  <p class="hint">💡 狗狗資訊會自動記憶在瀏覽器中。家有多犬可按「＋」新增。</p>
+</div>
+
+<!-- 乾飼料 -->
+<div class="card">
+  <h2>🥣 乾飼料（選填）</h2>
+  <p style="font-size:0.78rem; color:var(--text-light); margin-bottom:10px;">混合乾飼料時填入。熱量密度請看飼料包裝背面。</p>
+  <div class="grid2">
+    <div class="field">
+      <label>飼料熱量密度 (kcal/100g)</label>
+      <input type="number" id="kibbleKcalPer100" placeholder="例：330" step="1" min="0" oninput="calculate()">
+    </div>
+    <div class="field">
+      <label>今日餵食量 (g)</label>
+      <input type="number" id="kibbleGrams" placeholder="例：80" step="5" min="0" oninput="calculate()">
+    </div>
+  </div>
+  <div id="kibbleSummary" style="margin-top:10px; display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); border-radius:8px; padding:10px 12px;">
+      <div><span style="font-size:0.85rem; font-weight:600;">乾飼料熱量</span><span style="font-size:0.78rem; color:var(--text-light); margin-left:4px;" id="kibbleDetail"></span></div>
+      <div style="font-size:1.1rem; font-weight:700; color:var(--accent);" id="kibbleKcalTotal">0 kcal</div>
+    </div>
+    <div style="margin-top:6px; font-size:0.82rem; font-weight:600;" id="freshBudgetMsg"></div>
+  </div>
+</div>
+
+<!-- 食材 -->
+<div class="card">
+  <h2>🥦 鮮食食材</h2>
+  <label style="margin-bottom:6px; display:block;">食譜範本（點選自動帶入）</label>
+  <div class="recipe-grid" id="recipeGrid"></div>
+  <div class="ingredient-row header"><span>食材</span><span>重量 (g)</span><span style="text-align:right">熱量</span><span></span></div>
+  <div id="ingredientList"></div>
+  <button class="btn-add" onclick="addRow()">＋ 新增食材</button>
+  <details class="food-ref">
+    <summary>📋 食材營養速查表（每 100g）</summary>
+    <table><thead><tr><th>食材</th><th>kcal</th><th>蛋白質</th><th>脂肪</th><th>碳水</th><th>纖維</th><th>鈣</th></tr></thead><tbody id="refTable"></tbody></table>
+  </details>
+</div>
+
+<!-- 計算結果 -->
+<div class="card">
+  <h2>📊 計算結果</h2>
+  <div class="calorie-bar-wrap">
+    <div class="calorie-bar-label"><span>已配熱量</span><span id="barText">0 / - kcal</span></div>
+    <div class="calorie-bar"><div class="calorie-bar-fill" id="barFill" style="width:0%"></div></div>
+  </div>
+  <div class="summary-grid">
+    <div class="summary-item"><div class="value" id="totalKcal">0</div><div class="unit">kcal</div><div class="label">總熱量</div></div>
+    <div class="summary-item"><div class="value" id="totalProtein">0</div><div class="unit">g</div><div class="label">蛋白質</div></div>
+    <div class="summary-item"><div class="value" id="totalFat">0</div><div class="unit">g</div><div class="label">脂肪</div></div>
+    <div class="summary-item"><div class="value" id="totalCarb">0</div><div class="unit">g</div><div class="label">碳水</div></div>
+  </div>
+  <div id="statusMsg" class="status ok" style="display:none"></div>
+  <h2 style="margin-top:16px; font-size:0.95rem;">🍽️ 每餐分配</h2>
+  <div class="meal-split" id="mealSplit"></div>
+</div>
+
+<!-- 營養評估 -->
+<div class="card">
+  <h2>🧪 營養評估</h2>
+  <p style="font-size:0.78rem; color:var(--text-light); margin-bottom:12px;" id="nutriDesc">依據 NRC / AAFCO 標準（以鮮食部分計算）</p>
+  <div class="macro-pie"><canvas id="macroChart" width="90" height="90"></canvas><div class="macro-legend" id="macroLegend"></div></div>
+  <div id="nutriAssessment"></div>
+  <div id="caPhRatio" style="margin-top:8px; padding:8px 10px; background:var(--bg); border-radius:8px; font-size:0.82rem; display:none;"></div>
+</div>
+
+<!-- 補充品建議 -->
+<div class="card">
+  <h2>💊 鮮食補充品建議</h2>
+  <p style="font-size:0.78rem; color:var(--text-light); margin-bottom:10px;">自製鮮食需額外補充營養素，以下依生命階段建議</p>
+  <ul class="supplement-list" id="supplementList"></ul>
+  <div class="disclaimer" style="margin-top:10px; margin-bottom:0;">⚠️ 補充品劑量請諮詢獸醫師，尤其是有腎臟、肝臟或心臟問題的狗狗。</div>
+</div>
+
+<!-- Google Sheets -->
+<div class="card">
+  <h2>📝 記錄今日食譜</h2>
+  <p style="font-size:0.78rem; color:var(--text-light); margin-bottom:10px;">記錄到你自己的 Google Sheets，追蹤每日攝取量。每個家庭獨立記錄。</p>
+  <div class="field" style="margin-bottom:10px;">
+    <label>Google Apps Script 網址</label>
+    <input type="text" id="sheetUrl" placeholder="貼上你的 Web App URL..." style="font-size:0.82rem;" oninput="localStorage.setItem('dogcalc_sheetUrl', this.value)">
+  </div>
+  <div class="field" style="margin-bottom:10px;">
+    <label>備註（選填）</label>
+    <input type="text" id="logNote" placeholder="例：今天食慾不好，只吃了一半" style="font-size:0.82rem;">
+  </div>
+  <button class="btn-submit" id="btnLog" onclick="submitToSheet()">📤 記錄到 Google Sheets</button>
+  <div id="logMsg" class="log-msg" style="display:none;"></div>
+  <details style="margin-top:14px; font-size:0.78rem; color:var(--text-light);">
+    <summary style="cursor:pointer; font-weight:600;">🔧 首次設定教學（只需做一次）</summary>
+    <div style="margin-top:8px; line-height:1.8;">
+      <strong>步驟 1：</strong>建立一個新的 <a href="https://sheets.new" target="_blank">Google Sheets</a><br>
+      <strong>步驟 2：</strong>點選「擴充功能」→「Apps Script」<br>
+      <strong>步驟 3：</strong>將以下程式碼貼入，取代原有內容：
+      <button class="btn-copy" onclick="copyScript()" style="margin-left:8px;">複製程式碼</button>
+      <div class="setup-code" id="scriptCode">function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      '日期', '狗狗名字', '年齡', '體重(kg)',
+      '食材明細', '鮮食(kcal)', '飼料(kcal)',
+      '總熱量(kcal)', '蛋白質(g)', '脂肪(g)',
+      '碳水(g)', '纖維(g)', '備註'
+    ]);
+  }
+
+  sheet.appendRow([
+    data.date, data.dogName, data.age,
+    data.weight, data.ingredients,
+    data.freshKcal, data.kibbleKcal,
+    data.totalKcal, data.protein,
+    data.fat, data.carb, data.fiber,
+    data.note
+  ]);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({status:'ok'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</div>
+      <strong>步驟 4：</strong>點「部署」→「新增部署作業」→ 類型選「網頁應用程式」<br>
+      <strong>步驟 5：</strong>「誰可以存取」改為「所有人」→ 按「部署」<br>
+      <strong>步驟 6：</strong>授權畫面按「Advanced」→「Go to ... (unsafe)」→「允許」<br>
+      <strong>步驟 7：</strong>複製產生的網址，貼到上方欄位<br>
+      <br><em>完成後，每次按「記錄」就會自動新增一列到你的試算表。</em>
+    </div>
+  </details>
+</div>
+
+<footer>
+  Made with ❤️ by <a href="https://www.chewystudio.tw/" target="_blank">CHEWY 蚯蚓工作室</a><br>
+  資料來源：NRC 2006、AAFCO、FEDIAF、衛福部食品營養成分資料庫
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// 食材資料庫（每 100g）
+// ═══════════════════════════════════════
+const FOODS = {
+  "雞胸肉（去皮）": { kcal:117, protein:24.0, fat:1.9, carb:0.6, fiber:0, calcium:5, phosphorus:210, cat:"蛋白質" },
+  "雞腿肉（去皮）": { kcal:157, protein:19.7, fat:8.6, carb:0, fiber:0, calcium:8, phosphorus:178, cat:"蛋白質" },
+  "鮭魚": { kcal:208, protein:20.4, fat:13.4, carb:0, fiber:0, calcium:12, phosphorus:240, cat:"蛋白質" },
+  "鱈魚": { kcal:82, protein:17.8, fat:0.7, carb:0, fiber:0, calcium:16, phosphorus:203, cat:"蛋白質" },
+  "豬里肌（瘦）": { kcal:143, protein:22.2, fat:5.6, carb:0.2, fiber:0, calcium:5, phosphorus:220, cat:"蛋白質" },
+  "牛腱肉": { kcal:140, protein:21.6, fat:5.7, carb:0.5, fiber:0, calcium:7, phosphorus:195, cat:"蛋白質" },
+  "水煮蛋": { kcal:155, protein:12.6, fat:10.6, carb:1.1, fiber:0, calcium:50, phosphorus:172, cat:"蛋白質" },
+  "板豆腐": { kcal:87, protein:8.5, fat:3.4, carb:4.9, fiber:0.6, calcium:140, phosphorus:120, cat:"蛋白質" },
+  "南瓜": { kcal:69, protein:1.8, fat:0.2, carb:15.3, fiber:2.7, calcium:28, phosphorus:47, cat:"蔬菜" },
+  "高麗菜": { kcal:23, protein:1.3, fat:0.2, carb:4.5, fiber:1.8, calcium:47, phosphorus:23, cat:"蔬菜" },
+  "紅蘿蔔": { kcal:37, protein:0.8, fat:0.2, carb:8.1, fiber:2.7, calcium:27, phosphorus:28, cat:"蔬菜" },
+  "花椰菜": { kcal:28, protein:3.0, fat:0.3, carb:4.4, fiber:3.3, calcium:30, phosphorus:52, cat:"蔬菜" },
+  "地瓜": { kcal:114, protein:1.6, fat:0.1, carb:27.0, fiber:3.0, calcium:28, phosphorus:32, cat:"蔬菜" },
+  "櫛瓜": { kcal:17, protein:1.2, fat:0.3, carb:3.1, fiber:1.0, calcium:16, phosphorus:38, cat:"蔬菜" },
+  "白蘿蔔": { kcal:18, protein:0.6, fat:0.1, carb:4.1, fiber:1.4, calcium:27, phosphorus:22, cat:"蔬菜" },
+  "四季豆": { kcal:35, protein:1.8, fat:0.1, carb:7.1, fiber:3.2, calcium:37, phosphorus:38, cat:"蔬菜" },
+  "小黃瓜": { kcal:13, protein:0.7, fat:0.1, carb:2.7, fiber:0.7, calcium:14, phosphorus:21, cat:"蔬菜" },
+  "白飯（熟）": { kcal:168, protein:2.5, fat:0.3, carb:37.0, fiber:0.3, calcium:3, phosphorus:37, cat:"澱粉" },
+  "糙米飯（熟）": { kcal:161, protein:3.4, fat:1.2, carb:33.5, fiber:1.8, calcium:10, phosphorus:77, cat:"澱粉" },
+  "馬鈴薯（蒸熟）": { kcal:82, protein:1.9, fat:0.1, carb:18.5, fiber:1.7, calcium:8, phosphorus:40, cat:"澱粉" },
+  "橄欖油": { kcal:884, protein:0, fat:100, carb:0, fiber:0, calcium:0, phosphorus:0, cat:"油脂" },
+  "亞麻仁油": { kcal:884, protein:0, fat:100, carb:0, fiber:0, calcium:0, phosphorus:0, cat:"油脂" },
+  "魚油": { kcal:884, protein:0, fat:100, carb:0, fiber:0, calcium:0, phosphorus:0, cat:"油脂" },
+};
+
+// ═══════════════════════════════════════
+// 生命階段 & 營養標準（每 1000 kcal ME）
+// ═══════════════════════════════════════
+const LIFE_STAGES = {
+  puppy: {
+    label: '🐶 幼犬', css: 'stage-puppy', ageDesc: '< 1 歲',
+    desc: '成長發育期，需要高蛋白、高鈣磷支持骨骼與肌肉發育。注意大型犬幼犬鈣質不可過量。',
+    targets: {
+      protein: { min:56, max:85, unit:'g/1000kcal', label:'蛋白質', note:'AAFCO 幼犬最低 56g/1000kcal' },
+      fat:     { min:21, max:55, unit:'g/1000kcal', label:'脂肪', note:'幼犬需要較多能量密度' },
+      fiber:   { min:1, max:4, unit:'g/1000kcal', label:'膳食纖維', note:'幼犬不需太多纖維' },
+      calcium: { min:2000, max:4500, unit:'mg/1000kcal', label:'鈣', note:'大型犬幼犬注意上限' },
+      phosphorus: { min:1600, max:3500, unit:'mg/1000kcal', label:'磷', note:'Ca:P 1.0~1.8:1' },
+    },
+    macroAdvice: { protein: '≥30%', fat: '15~25%', carb: '≤40%' },
+    supplements: [
+      { icon:'🦴', name:'鈣質補充', tag:'essential', text:'蛋殼粉或骨粉，支持骨骼發育。大型犬幼犬注意不可過量。' },
+      { icon:'🐟', name:'Omega-3 魚油', tag:'essential', text:'支持腦部與視力發育。建議 EPA+DHA 共 20~30mg/kg/天。' },
+      { icon:'🌿', name:'犬用綜合維他命', tag:'essential', text:'補充維生素 A、D、E、B 群及微量元素。' },
+      { icon:'🦠', name:'益生菌', tag:'recommend', text:'幫助消化系統建立健康菌相。' },
+    ]
+  },
+  adult: {
+    label: '🐕 成犬', css: 'stage-adult', ageDesc: '1~6 歲',
+    desc: '維持期，營養均衡即可。結紮犬注意熱量控制，避免發胖。',
+    targets: {
+      protein: { min:45, max:75, unit:'g/1000kcal', label:'蛋白質', note:'AAFCO 成犬最低 45g/1000kcal' },
+      fat:     { min:14, max:40, unit:'g/1000kcal', label:'脂肪', note:'一般成犬適中即可' },
+      fiber:   { min:2, max:6, unit:'g/1000kcal', label:'膳食纖維', note:'維持腸道健康' },
+      calcium: { min:1000, max:1800, unit:'mg/1000kcal', label:'鈣', note:'Ca:P 1.2~1.4:1' },
+      phosphorus: { min:750, max:1400, unit:'mg/1000kcal', label:'磷', note:'均衡即可' },
+    },
+    macroAdvice: { protein: '≥25%', fat: '15~25%', carb: '≤45%' },
+    supplements: [
+      { icon:'🦴', name:'鈣質補充', tag:'essential', text:'蛋殼粉（½ 茶匙 ≈ 900mg 鈣）或骨粉。鮮食必備。' },
+      { icon:'🐟', name:'Omega-3 魚油', tag:'recommend', text:'抗發炎、護膚毛。EPA+DHA 共 20~30mg/kg/天。' },
+      { icon:'🌿', name:'犬用綜合維他命', tag:'essential', text:'長期鮮食務必補充微量營養素。' },
+    ]
+  },
+  mature: {
+    label: '🐕‍🦺 熟齡犬', css: 'stage-mature', ageDesc: '7~9 歲',
+    desc: '開始老化，蛋白質需求漸增以維持肌肉量，脂肪適度控制。',
+    targets: {
+      protein: { min:60, max:90, unit:'g/1000kcal', label:'蛋白質', note:'漸增蛋白質防止肌少' },
+      fat:     { min:14, max:35, unit:'g/1000kcal', label:'脂肪', note:'適度控制' },
+      fiber:   { min:3, max:8, unit:'g/1000kcal', label:'膳食纖維', note:'幫助腸道蠕動' },
+      calcium: { min:1000, max:1800, unit:'mg/1000kcal', label:'鈣', note:'Ca:P 1.2~1.4:1' },
+      phosphorus: { min:750, max:1400, unit:'mg/1000kcal', label:'磷', note:'腎功能下降時需注意' },
+    },
+    macroAdvice: { protein: '≥28%', fat: '12~22%', carb: '≤40%' },
+    supplements: [
+      { icon:'🦴', name:'鈣質補充', tag:'essential', text:'蛋殼粉或骨粉。鮮食必備。' },
+      { icon:'🐟', name:'Omega-3 魚油', tag:'essential', text:'抗發炎、護關節。EPA+DHA 共 30~50mg/kg/天。' },
+      { icon:'🌿', name:'犬用綜合維他命', tag:'essential', text:'補充維生素 A、D、E、B 群及微量元素。' },
+      { icon:'🦵', name:'葡萄糖胺/軟骨素', tag:'recommend', text:'開始保養關節，預防退化。' },
+      { icon:'🦠', name:'益生菌', tag:'recommend', text:'支持漸弱的消化機能。' },
+    ]
+  },
+  senior: {
+    label: '👴 高齡犬', css: 'stage-senior', ageDesc: '10 歲以上',
+    desc: '高蛋白防肌少、高纖維助消化、關節與腦部保養是重點。',
+    targets: {
+      protein: { min:70, max:100, unit:'g/1000kcal', label:'蛋白質', note:'高齡犬需 ≥75g/1000kcal 維持肌肉量' },
+      fat:     { min:15, max:35, unit:'g/1000kcal', label:'脂肪', note:'減重期控制在低範圍' },
+      fiber:   { min:4, max:10, unit:'g/1000kcal', label:'膳食纖維', note:'促進腸胃蠕動、增加飽足感' },
+      calcium: { min:1000, max:1800, unit:'mg/1000kcal', label:'鈣', note:'Ca:P 1.2~1.4:1' },
+      phosphorus: { min:750, max:1400, unit:'mg/1000kcal', label:'磷', note:'腎功能不佳時需限制' },
+    },
+    macroAdvice: { protein: '≥30%', fat: '10~20%', carb: '≤40%' },
+    supplements: [
+      { icon:'🦴', name:'鈣質補充', tag:'essential', text:'蛋殼粉（½ 茶匙 ≈ 900mg 鈣）或骨粉。鮮食最容易缺鈣。' },
+      { icon:'🐟', name:'Omega-3 魚油', tag:'essential', text:'抗發炎、護關節、護腦。EPA+DHA 共 30~50mg/kg/天。' },
+      { icon:'🌿', name:'犬用綜合維他命', tag:'essential', text:'維生素 A、D、E、B 群、鋅、鐵、碘、硒等。' },
+      { icon:'🦠', name:'益生菌', tag:'essential', text:'高齡犬腸道菌相改變，幫助消化吸收。' },
+      { icon:'🦵', name:'葡萄糖胺/軟骨素', tag:'essential', text:'保護關節軟骨，減緩退化性關節炎。' },
+      { icon:'🧠', name:'MCT 油/椰子油', tag:'recommend', text:'提供腦部能量，有助認知功能維持。' },
+    ]
+  },
+};
+
+// DER 係數（RER × factor）
+const DER_FACTORS = {
+  puppy:  { intact: 2.0, neutered: 2.0 },
+  adult:  { intact: 1.8, neutered: 1.6 },
+  mature: { intact: 1.6, neutered: 1.4 },
+  senior: { intact: 1.4, neutered: 1.2 },
+};
+
+const ACTIVITY_MULT = { low: 0.85, normal: 1.0, high: 1.2 };
+
+// ═══════════════════════════════════════
+// 食譜範本
+// ═══════════════════════════════════════
+const PRESETS = {
+  chickenHigh: { name:'🍗 高蛋白雞胸餐', desc:'蛋白質 ≥50%、低脂、好消化',
+    items: [['雞胸肉（去皮）',400],['南瓜',200],['高麗菜',150],['糙米飯（熟）',130],['魚油',3],['橄欖油',4]] },
+  salmon: { name:'🐟 鮭魚護腦餐', desc:'富含 Omega-3、護腦護關節',
+    items: [['鮭魚',250],['花椰菜',200],['紅蘿蔔',150],['馬鈴薯（蒸熟）',200],['橄欖油',3]] },
+  beef: { name:'🥩 牛肉高纖餐', desc:'鐵質豐富、纖維充足',
+    items: [['牛腱肉',350],['四季豆',150],['白蘿蔔',200],['地瓜',120],['魚油',3],['橄欖油',3]] },
+  codLowFat: { name:'🐠 低脂鱈魚餐', desc:'極低脂、適合嚴格減重期',
+    items: [['鱈魚',450],['南瓜',200],['四季豆',150],['馬鈴薯（蒸熟）',200],['橄欖油',5],['魚油',3]] },
+  mixed: { name:'🥚 多元蛋白餐', desc:'雞肉+蛋+豆腐，營養多元',
+    items: [['雞胸肉（去皮）',200],['水煮蛋',100],['板豆腐',100],['南瓜',150],['花椰菜',150],['糙米飯（熟）',100],['魚油',3]] },
+};
+
+const FOOD_NAMES = Object.keys(FOODS);
+let rows = [], rowId = 0, activePreset = null, currentStage = 'adult';
+
+// ═══════════════════════════════════════
+// 生命階段判斷
+// ═══════════════════════════════════════
+function getStageKey(age) {
+  if (age < 1) return 'puppy';
+  if (age < 7) return 'adult';
+  if (age < 10) return 'mature';
+  return 'senior';
+}
+
+function updateStage() {
+  const age = parseFloat(document.getElementById('dogAge').value);
+  const weight = parseFloat(document.getElementById('currentWeight').value);
+  const neutered = document.getElementById('isNeutered').checked;
+  const activity = document.getElementById('activityLevel').value;
+
+  document.getElementById('neuteredLabel').textContent = neutered ? '已結紮' : '未結紮';
+
+  if (isNaN(age) || age < 0) {
+    document.getElementById('stageCard').innerHTML = '';
+    document.getElementById('kcalSuggest').style.display = 'none';
+    return;
+  }
+
+  currentStage = getStageKey(age);
+  const stage = LIFE_STAGES[currentStage];
+
+  // stage card
+  const ma = stage.macroAdvice;
+  document.getElementById('stageCard').innerHTML = `
+    <div class="stage-card ${stage.css}">
+      <div class="stage-title">${stage.label}（${stage.ageDesc}）</div>
+      <div class="stage-desc">${stage.desc}</div>
+      <div class="stage-macros">
+        <span class="macro-badge">蛋白質 ${ma.protein}</span>
+        <span class="macro-badge">脂肪 ${ma.fat}</span>
+        <span class="macro-badge">碳水 ${ma.carb}</span>
+      </div>
+      ${neutered ? '<div style="font-size:0.75rem; margin-top:6px; color:var(--danger);">⚠️ 結紮後代謝降低約 20~30%，注意熱量控制</div>' : ''}
+    </div>
+  `;
+
+  // suggested kcal
+  if (weight > 0) {
+    const rer = 70 * Math.pow(weight, 0.75);
+    const status = neutered ? 'neutered' : 'intact';
+    const der = rer * DER_FACTORS[currentStage][status] * ACTIVITY_MULT[activity];
+    document.getElementById('kcalSuggest').style.display = 'block';
+    document.getElementById('kcalSuggest').textContent =
+      `💡 建議每日熱量約 ${Math.round(der)} kcal（RER ${Math.round(rer)} × 係數，僅供參考，請以獸醫建議為準）`;
+  } else {
+    document.getElementById('kcalSuggest').style.display = 'none';
+  }
+
+  // update supplements
+  renderSupplements();
+
+  // update nutri desc
+  document.getElementById('nutriDesc').textContent =
+    `依據 NRC / AAFCO 標準，${stage.label}的建議範圍（以鮮食部分計算）`;
+}
+
+function renderSupplements() {
+  const stage = LIFE_STAGES[currentStage];
+  const list = document.getElementById('supplementList');
+  list.innerHTML = stage.supplements.map(s =>
+    `<li><span class="icon">${s.icon}</span><div><strong>${s.name}</strong><span class="tag tag-${s.tag}">${s.tag === 'essential' ? '必要' : '建議'}</span><br>${s.text}</div></li>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════
+// 狗狗檔案管理
+// ═══════════════════════════════════════
+function getProfiles() { try { return JSON.parse(localStorage.getItem('dogcalc_profiles')) || {}; } catch { return {}; } }
+function saveProfiles(p) { localStorage.setItem('dogcalc_profiles', JSON.stringify(p)); }
+function getActiveDogId() { return localStorage.getItem('dogcalc_active'); }
+function setActiveDogId(id) { localStorage.setItem('dogcalc_active', id); }
+
+function saveDogProfile() {
+  const id = getActiveDogId(); if (!id) return;
+  const p = getProfiles();
+  p[id] = {
+    name: document.getElementById('dogName').value.trim(),
+    age: document.getElementById('dogAge').value,
+    weight: document.getElementById('currentWeight').value,
+    target: document.getElementById('targetWeight').value,
+    kcal: document.getElementById('dailyKcal').value,
+    meals: document.getElementById('mealsPerDay').value,
+    activity: document.getElementById('activityLevel').value,
+    neutered: document.getElementById('isNeutered').checked,
+  };
+  saveProfiles(p);
+  renderDogTabs();
+}
+
+function loadDogProfile(id) {
+  const p = getProfiles()[id]; if (!p) return;
+  setActiveDogId(id);
+  document.getElementById('dogName').value = p.name || '';
+  document.getElementById('dogAge').value = p.age || '';
+  document.getElementById('currentWeight').value = p.weight || '';
+  document.getElementById('targetWeight').value = p.target || '';
+  document.getElementById('dailyKcal').value = p.kcal || '';
+  document.getElementById('mealsPerDay').value = p.meals || '2';
+  document.getElementById('activityLevel').value = p.activity || 'normal';
+  document.getElementById('isNeutered').checked = p.neutered || false;
+  renderDogTabs();
+  updateStage();
+  calculate();
+}
+
+function addNewDog() {
+  const id = 'dog_' + Date.now().toString(36);
+  const p = getProfiles();
+  p[id] = { name:'', age:'', weight:'', target:'', kcal:'', meals:'2', activity:'normal', neutered:false };
+  saveProfiles(p); setActiveDogId(id);
+  ['dogName','dogAge','currentWeight','targetWeight','dailyKcal'].forEach(f => document.getElementById(f).value = '');
+  document.getElementById('mealsPerDay').value = '2';
+  document.getElementById('activityLevel').value = 'normal';
+  document.getElementById('isNeutered').checked = false;
+  renderDogTabs(); updateStage(); calculate();
+  document.getElementById('dogName').focus();
+}
+
+function deleteDog(id, evt) {
+  evt.stopPropagation();
+  const p = getProfiles();
+  if (!confirm(`確定要刪除「${p[id]?.name || '未命名'}」的資料嗎？`)) return;
+  delete p[id]; saveProfiles(p);
+  const ids = Object.keys(p);
+  ids.length > 0 ? loadDogProfile(ids[0]) : addNewDog();
+}
+
+function renderDogTabs() {
+  const bar = document.getElementById('dogProfileBar');
+  const p = getProfiles(), aid = getActiveDogId(), ids = Object.keys(p);
+  bar.innerHTML = ids.map(id => {
+    const d = p[id], active = id === aid, canDel = ids.length > 1;
+    return `<div class="dog-tab ${active?'active':''}" onclick="loadDogProfile('${id}')">🐕 ${d.name||'未命名'}${canDel?`<span class="del" onclick="deleteDog('${id}',event)">✕</span>`:''}</div>`;
+  }).join('') + `<button class="btn-add-dog" onclick="addNewDog()">＋</button>`;
+}
+
+// ═══════════════════════════════════════
+// 食材列操作
+// ═══════════════════════════════════════
+let optionsHTML = '';
+function buildOptions() {
+  let g = {};
+  FOOD_NAMES.forEach(n => { const c = FOODS[n].cat; if(!g[c]) g[c]=[]; g[c].push(n); });
+  optionsHTML = '<option value="">選擇食材</option>';
+  for (const [c,items] of Object.entries(g)) {
+    optionsHTML += `<optgroup label="${c}">`;
+    items.forEach(n => optionsHTML += `<option value="${n}">${n}</option>`);
+    optionsHTML += '</optgroup>';
+  }
+}
+
+function addRow(foodName, grams) {
+  const id = rowId++; rows.push(id);
+  const div = document.createElement('div');
+  div.className = 'ingredient-row'; div.id = `row-${id}`;
+  div.innerHTML = `<select onchange="calculate()" id="food-${id}">${optionsHTML}</select><input type="number" id="grams-${id}" placeholder="0" min="0" step="5" value="${grams||''}" oninput="calculate()"><span class="ingredient-kcal" id="kcal-${id}">-</span><button class="btn-remove" onclick="removeRow(${id})">✕</button>`;
+  document.getElementById('ingredientList').appendChild(div);
+  if (foodName) document.getElementById(`food-${id}`).value = foodName;
+  calculate();
+}
+
+function removeRow(id) {
+  const el = document.getElementById(`row-${id}`); if(el) el.remove();
+  rows = rows.filter(r => r !== id); calculate();
+}
+
+function loadPreset(key) {
+  const pr = PRESETS[key]; if(!pr) return;
+  document.getElementById('ingredientList').innerHTML = ''; rows = []; rowId = 0; activePreset = key;
+  document.querySelectorAll('.recipe-card').forEach(el => el.classList.remove('active'));
+  const card = document.getElementById(`rc-${key}`); if(card) card.classList.add('active');
+  pr.items.forEach(([n,g]) => addRow(n,g));
+  calculate();
+}
+
+function buildRecipeGrid() {
+  document.getElementById('recipeGrid').innerHTML = Object.entries(PRESETS).map(([k,r]) => {
+    let kcal = 0; r.items.forEach(([n,g]) => { if(FOODS[n]) kcal += FOODS[n].kcal*g/100; });
+    return `<div class="recipe-card" id="rc-${k}" onclick="loadPreset('${k}')"><div class="recipe-name">${r.name}</div><div class="recipe-desc">${r.desc}</div><div class="recipe-kcal">~${Math.round(kcal)} kcal</div></div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+// 主計算
+// ═══════════════════════════════════════
+function calculate() {
+  const dailyLimit = parseFloat(document.getElementById('dailyKcal').value) || 0;
+  const meals = parseInt(document.getElementById('mealsPerDay').value) || 2;
+
+  const kibbleKcalPer100 = parseFloat(document.getElementById('kibbleKcalPer100').value) || 0;
+  const kibbleGrams = parseFloat(document.getElementById('kibbleGrams').value) || 0;
+  const kibbleKcal = (kibbleKcalPer100/100) * kibbleGrams;
+
+  const ks = document.getElementById('kibbleSummary');
+  if (kibbleKcalPer100 > 0 && kibbleGrams > 0) {
+    ks.style.display = 'block';
+    document.getElementById('kibbleKcalTotal').textContent = `${Math.round(kibbleKcal)} kcal`;
+    document.getElementById('kibbleDetail').textContent = `(${kibbleGrams}g × ${kibbleKcalPer100}/100g)`;
+    const fb = dailyLimit - kibbleKcal;
+    const msg = document.getElementById('freshBudgetMsg');
+    if (dailyLimit > 0 && fb <= 0) { msg.style.color = '#c0392b'; msg.textContent = '⚠️ 乾飼料已超出上限'; }
+    else if (dailyLimit > 0) { msg.style.color = '#27ae60'; msg.textContent = `→ 鮮食可用額度：${Math.round(fb)} kcal`; }
+    else { msg.textContent = ''; }
+  } else { ks.style.display = 'none'; }
+
+  let freshKcal=0, tp=0, tf=0, tc=0, tfi=0, tca=0, tph=0, fg=0;
+  rows.forEach(id => {
+    const fEl = document.getElementById(`food-${id}`), gEl = document.getElementById(`grams-${id}`), kEl = document.getElementById(`kcal-${id}`);
+    if(!fEl||!gEl) return;
+    const food = FOODS[fEl.value], g = parseFloat(gEl.value)||0;
+    if(food && g>0) {
+      const r=g/100; freshKcal+=food.kcal*r; tp+=food.protein*r; tf+=food.fat*r; tc+=food.carb*r;
+      tfi+=food.fiber*r; tca+=food.calcium*r; tph+=food.phosphorus*r; fg+=g;
+      kEl.textContent = Math.round(food.kcal*r);
+    } else { kEl.textContent = '-'; }
+  });
+
+  const totalKcal = kibbleKcal + freshKcal;
+  document.getElementById('totalKcal').textContent = Math.round(totalKcal);
+  document.getElementById('totalProtein').textContent = tp.toFixed(1);
+  document.getElementById('totalFat').textContent = tf.toFixed(1);
+  document.getElementById('totalCarb').textContent = tc.toFixed(1);
+
+  // bar
+  const barFill = document.getElementById('barFill');
+  if (dailyLimit > 0) {
+    const pct = Math.min((totalKcal/dailyLimit)*100, 120);
+    barFill.style.width = Math.min(pct,100)+'%';
+    barFill.textContent = Math.round(pct)+'%';
+    barFill.style.background = pct<=90?'#f39c12':pct<=105?'#27ae60':'#c0392b';
+    const kl = kibbleKcal>0?`（飼料${Math.round(kibbleKcal)}+鮮食${Math.round(freshKcal)}）`:'';
+    document.getElementById('barText').textContent = `${Math.round(totalKcal)} / ${dailyLimit} kcal ${kl}`;
+  } else {
+    barFill.style.width = '0%'; barFill.textContent = '';
+    document.getElementById('barText').textContent = `${Math.round(totalKcal)} kcal（未設定上限）`;
+  }
+
+  // status
+  const st = document.getElementById('statusMsg');
+  if (totalKcal===0 || dailyLimit<=0) { st.style.display='none'; }
+  else if (totalKcal>dailyLimit*1.05) { st.style.display='block'; st.className='status over'; st.textContent=`⚠️ 超出上限 ${Math.round(totalKcal-dailyLimit)} kcal`; }
+  else if (totalKcal<dailyLimit*0.85) { st.style.display='block'; st.className='status under'; st.textContent=`還可以再加 ${Math.round(dailyLimit-totalKcal)} kcal`; }
+  else { st.style.display='block'; st.className='status ok'; st.textContent='✓ 熱量配置合適！'; }
+
+  // meal split
+  const md = document.getElementById('mealSplit');
+  const mn = meals===2?['早餐','晚餐']:['早餐','午餐','晚餐'];
+  md.innerHTML = mn.map(n => {
+    const mk=freshKcal/meals+kibbleKcal/meals;
+    let d='';
+    if(kibbleKcal>0&&freshKcal>0) d=`<div class="meal-grams">飼料 ${Math.round(kibbleGrams/meals)}g + 鮮食 ${Math.round(fg/meals)}g</div>`;
+    else d=`<div class="meal-grams">約 ${Math.round(fg/meals)}g</div>`;
+    return `<div class="meal-card"><div class="meal-name">${n}</div><div class="meal-kcal">${Math.round(mk)} kcal</div>${d}</div>`;
+  }).join('');
+
+  assessNutrition(freshKcal, tp, tf, tc, tfi, tca, tph);
+}
+
+// ═══════════════════════════════════════
+// 營養評估
+// ═══════════════════════════════════════
+function assessNutrition(freshKcal, protein, fat, carb, fiber, calcium, phosphorus) {
+  const c = document.getElementById('nutriAssessment');
+  if (freshKcal<=0) { c.innerHTML='<div style="text-align:center;color:var(--text-light);padding:12px">請先加入鮮食食材</div>'; document.getElementById('caPhRatio').style.display='none'; drawMacroChart(0,0,0); return; }
+
+  const targets = LIFE_STAGES[currentStage].targets;
+  const s = 1000/freshKcal;
+  const vals = { protein:protein*s, fat:fat*s, fiber:fiber*s, calcium:calcium*s, phosphorus:phosphorus*s };
+
+  let html = '';
+  for (const [key, t] of Object.entries(targets)) {
+    const v = vals[key], maxBar = t.max*1.5;
+    const fillPct = Math.min((v/maxBar)*100,100), tMinPct = (t.min/maxBar)*100, tMaxPct = (t.max/maxBar)*100;
+    let color, status;
+    if(v<t.min*0.8){color='#c0392b';status='不足';}
+    else if(v<t.min){color='#f39c12';status='偏低';}
+    else if(v<=t.max){color='#27ae60';status='合適';}
+    else if(v<=t.max*1.2){color='#f39c12';status='偏高';}
+    else{color='#c0392b';status='過高';}
+    const isM=key==='calcium'||key==='phosphorus';
+    html+=`<div class="nutri-row"><div class="nutri-label">${t.label}</div><div class="nutri-bar-bg"><div class="nutri-bar-fill" style="width:${fillPct}%;background:${color}"></div><div class="nutri-bar-target" style="left:${tMinPct}%"></div><div class="nutri-bar-target" style="left:${tMaxPct}%"></div></div><div class="nutri-value">${isM?Math.round(v):v.toFixed(1)}${isM?'mg':'g'} <span style="color:${color}">${status}</span></div></div><div class="nutri-range">建議 ${t.min}~${t.max} ${t.unit}｜${t.note}</div>`;
+  }
+  c.innerHTML = html;
+
+  const cpr = document.getElementById('caPhRatio');
+  if(calcium>0&&phosphorus>0) {
+    const r=calcium/phosphorus; cpr.style.display='block';
+    cpr.innerHTML=`<strong>鈣磷比 Ca:P = ${r.toFixed(2)} : 1</strong> `+(r>=1.0&&r<=2.0?'<span style="color:#27ae60">✓ 範圍內</span>':'<span style="color:#c0392b">⚠️ 建議 1.2~1.4:1（需額外補鈣）</span>');
+  } else { cpr.style.display='none'; }
+
+  const ma = LIFE_STAGES[currentStage].macroAdvice;
+  drawMacroChart(protein, fat, carb, ma);
+}
+
+function drawMacroChart(protein, fat, carb, advice) {
+  const cv = document.getElementById('macroChart'), ctx = cv.getContext('2d');
+  ctx.clearRect(0,0,90,90);
+  const pc=protein*4,fc=fat*9,cc=carb*4,tot=pc+fc+cc;
+  if(tot<=0){ctx.beginPath();ctx.arc(45,45,38,0,Math.PI*2);ctx.fillStyle='#eee';ctx.fill();document.getElementById('macroLegend').innerHTML='';return;}
+  const pp=Math.round(pc/tot*100),fp=Math.round(fc/tot*100),cp=100-pp-fp;
+  let a=-Math.PI/2;
+  [{p:pc/tot,c:'#e67e22'},{p:fc/tot,c:'#f1c40f'},{p:cc/tot,c:'#3498db'}].forEach(s=>{
+    const e=a+s.p*Math.PI*2;ctx.beginPath();ctx.moveTo(45,45);ctx.arc(45,45,38,a,e);ctx.closePath();ctx.fillStyle=s.c;ctx.fill();a=e;
+  });
+  ctx.beginPath();ctx.arc(45,45,18,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  const ad = advice || {protein:'',fat:'',carb:''};
+  document.getElementById('macroLegend').innerHTML=
+    `<span style="background:#e67e22"></span>蛋白質 <strong>${pp}%</strong>（${ad.protein}）<br>`+
+    `<span style="background:#f1c40f"></span>脂肪 <strong>${fp}%</strong>（${ad.fat}）<br>`+
+    `<span style="background:#3498db"></span>碳水 <strong>${cp}%</strong>（${ad.carb}）`;
+}
+
+// ═══════════════════════════════════════
+// Google Sheets
+// ═══════════════════════════════════════
+function getIngredientsSummary() {
+  const items = [];
+  rows.forEach(id => {
+    const f=document.getElementById(`food-${id}`), g=document.getElementById(`grams-${id}`);
+    if(f&&g&&f.value&&parseFloat(g.value)>0) items.push(`${f.value} ${g.value}g`);
+  });
+  return items.join('、');
+}
+
+async function submitToSheet() {
+  const url = document.getElementById('sheetUrl').value.trim();
+  const msgEl = document.getElementById('logMsg'), btn = document.getElementById('btnLog');
+  if(!url){msgEl.style.display='block';msgEl.style.background='#fdecea';msgEl.style.color='#c0392b';msgEl.textContent='請先貼上 Apps Script 網址（參考下方教學）';return;}
+
+  const kp=parseFloat(document.getElementById('kibbleKcalPer100').value)||0;
+  const kg=parseFloat(document.getElementById('kibbleGrams').value)||0;
+  const kk=Math.round((kp/100)*kg);
+  let fk=0,pr=0,ft=0,cb=0,fb=0;
+  rows.forEach(id=>{const f=document.getElementById(`food-${id}`),g=document.getElementById(`grams-${id}`);if(!f||!g)return;const food=FOODS[f.value],gv=parseFloat(g.value)||0;if(food&&gv>0){const r=gv/100;fk+=food.kcal*r;pr+=food.protein*r;ft+=food.fat*r;cb+=food.carb*r;fb+=food.fiber*r;}});
+
+  const dogName = document.getElementById('dogName').value.trim()||'未命名';
+  const payload = {
+    date: new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}),
+    dogName, age: document.getElementById('dogAge').value,
+    weight: document.getElementById('currentWeight').value,
+    ingredients: getIngredientsSummary(),
+    freshKcal:Math.round(fk), kibbleKcal:kk, totalKcal:Math.round(fk+kk),
+    protein:pr.toFixed(1), fat:ft.toFixed(1), carb:cb.toFixed(1), fiber:fb.toFixed(1),
+    note: document.getElementById('logNote').value.trim(),
+  };
+
+  btn.disabled=true; btn.textContent='傳送中...'; msgEl.style.display='none';
+  try {
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    msgEl.style.display='block';msgEl.style.background='#e8f8e8';msgEl.style.color='#1a7a1a';
+    msgEl.textContent=`✓ 已記錄「${dogName}」的食譜！（${payload.date}，${payload.totalKcal} kcal）`;
+  } catch(err) {
+    msgEl.style.display='block';msgEl.style.background='#fdecea';msgEl.style.color='#c0392b';
+    msgEl.textContent=`記錄失敗：${err.message}`;
+  } finally { btn.disabled=false; btn.textContent='📤 記錄到 Google Sheets'; }
+}
+
+function copyScript() {
+  navigator.clipboard.writeText(document.getElementById('scriptCode').textContent).then(()=>{
+    const b=event.target;b.textContent='已複製！';setTimeout(()=>b.textContent='複製程式碼',2000);
+  });
+}
+
+// ═══════════════════════════════════════
+// 速查表 & 初始化
+// ═══════════════════════════════════════
+function buildRefTable() {
+  let html='',lc='';
+  FOOD_NAMES.forEach(n=>{const f=FOODS[n];if(f.cat!==lc){html+=`<tr><td colspan="7" style="font-weight:600;padding-top:8px;border:none;color:var(--accent)">${f.cat}</td></tr>`;lc=f.cat;}
+  html+=`<tr><td>${n}</td><td>${f.kcal}</td><td>${f.protein}</td><td>${f.fat}</td><td>${f.carb}</td><td>${f.fiber}</td><td>${f.calcium}mg</td></tr>`;});
+  document.getElementById('refTable').innerHTML=html;
+}
+
+function init() {
+  const su=localStorage.getItem('dogcalc_sheetUrl');if(su)document.getElementById('sheetUrl').value=su;
+  buildOptions(); buildRefTable(); buildRecipeGrid();
+  const p=getProfiles(),aid=getActiveDogId();
+  if(aid&&p[aid])loadDogProfile(aid);else if(Object.keys(p).length>0)loadDogProfile(Object.keys(p)[0]);else addNewDog();
+  loadPreset('chickenHigh');
+}
+
+init();
+</script>
+</body>
+</html>
