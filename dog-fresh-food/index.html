@@ -149,6 +149,42 @@
 
   footer { text-align: center; font-size: 0.75rem; color: var(--text-light); margin-top: 24px; padding-bottom: 20px; }
   a { color: var(--accent); }
+
+  /* 手機響應式 */
+  @media (max-width: 480px) {
+    body { padding: 10px; }
+    h1 { font-size: 1.25rem; }
+    .card { padding: 12px; }
+    .grid2 { grid-template-columns: 1fr 1fr; gap: 8px; }
+    input, select { font-size: 0.85rem; padding: 7px 8px; min-width: 0; max-width: 100%; }
+    select { text-overflow: ellipsis; overflow: hidden; }
+    .ingredient-row { grid-template-columns: 1fr 65px 50px 32px; gap: 4px; }
+    .ingredient-row select, .ingredient-row input { padding: 5px 6px; font-size: 0.8rem; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .summary-item .value { font-size: 1rem; }
+    .nutri-row { grid-template-columns: 70px 1fr 60px; gap: 4px; }
+    .nutri-label { font-size: 0.72rem; }
+    .nutri-value { font-size: 0.7rem; }
+    .nutri-range { padding-left: 74px; font-size: 0.65rem; }
+    .recipe-grid { grid-template-columns: 1fr; }
+    .macro-pie { flex-direction: column; align-items: flex-start; }
+    .kcal-suggest { font-size: 0.72rem; line-height: 1.6; }
+    .btn-apply-kcal { display: block; margin: 6px 0 0; }
+    .sources-card li { font-size: 0.68rem; word-break: break-all; }
+    .sources-card a { word-break: break-all; }
+    .setup-code { font-size: 0.65rem; padding: 8px; }
+    .meal-split { grid-template-columns: 1fr 1fr; }
+    .stage-card { padding: 10px; }
+    .stage-card .stage-title { font-size: 0.85rem; }
+    .stage-card .stage-desc { font-size: 0.72rem; }
+    .supplement-list li { font-size: 0.75rem; padding: 7px 8px; }
+    .disclaimer { font-size: 0.72rem; padding: 8px 10px; }
+  }
+
+  @media (max-width: 360px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .ingredient-row { grid-template-columns: 1fr 60px 45px 28px; }
+  }
 </style>
 </head>
 <body>
@@ -181,19 +217,19 @@
     <div class="field">
       <label>運動量</label>
       <select id="activityLevel" onchange="saveDogProfile(); updateStage(); calculate()">
-        <option value="low">低（散步為主/高齡）</option>
-        <option value="normal" selected>一般（每日 30~60 分鐘）</option>
-        <option value="high">高（每日 1 小時以上）</option>
+        <option value="low">低（散步/高齡）</option>
+        <option value="normal" selected>一般（30~60 分鐘）</option>
+        <option value="high">高（1 小時以上）</option>
       </select>
     </div>
     <div class="field">
-      <label>是否結紮</label>
+      <label>是否絕育</label>
       <div class="toggle-row">
         <label class="toggle">
           <input type="checkbox" id="isNeutered" onchange="saveDogProfile(); updateStage(); calculate()">
           <span class="slider"></span>
         </label>
-        <span style="font-size:0.85rem;" id="neuteredLabel">未結紮</span>
+        <span style="font-size:0.85rem;" id="neuteredLabel">未絕育</span>
       </div>
     </div>
     <div class="field">
@@ -400,7 +436,7 @@ const LIFE_STAGES = {
   },
   adult: {
     label: '🐕 成犬', css: 'stage-adult', ageDesc: '1~6 歲',
-    desc: '維持期，營養均衡即可。結紮犬注意熱量控制，避免發胖。',
+    desc: '維持期，營養均衡即可。絕育犬注意熱量控制，避免發胖。',
     targets: {
       protein: { min:45, max:110, unit:'g/1000kcal', label:'蛋白質', note:'AAFCO 最低 45g；鮮食通常 60~100g（無官方上限）' },
       fat:     { min:14, max:45, unit:'g/1000kcal', label:'脂肪', note:'AAFCO 最低 13.8g；一般成犬適中即可' },
@@ -540,7 +576,7 @@ function updateStage() {
   const neutered = document.getElementById('isNeutered').checked;
   const activity = document.getElementById('activityLevel').value;
 
-  document.getElementById('neuteredLabel').textContent = neutered ? '已結紮' : '未結紮';
+  document.getElementById('neuteredLabel').textContent = neutered ? '已絕育' : '未絕育';
 
   if (isNaN(age) || age < 0) {
     document.getElementById('stageCard').innerHTML = '';
@@ -562,7 +598,7 @@ function updateStage() {
         <span class="macro-badge">脂肪 ${ma.fat}</span>
         <span class="macro-badge">碳水 ${ma.carb}</span>
       </div>
-      ${neutered ? '<div style="font-size:0.75rem; margin-top:6px; color:var(--danger);">⚠️ 結紮後代謝降低約 20~30%，注意熱量控制</div>' : ''}
+      ${neutered ? '<div style="font-size:0.75rem; margin-top:6px; color:var(--danger);">⚠️ 絕育後代謝降低約 20~30%，注意熱量控制</div>' : ''}
     </div>
   `;
 
@@ -991,7 +1027,7 @@ init();
 </div>
 
 <div style="text-align:center; padding:16px 0; color:var(--text-light); font-size:0.75rem;">
-  由 Luludidi 提供 ｜ <a href="https://www.instagram.com/yeslulu/" target="_blank" style="color:var(--accent)">IG @yeslulu</a> ・ <a href="https://www.facebook.com/yeslulu" target="_blank" style="color:var(--accent)">FB @yeslulu</a>
+  由 Luludidi 提供 ｜ <a href="https://www.instagram.com/yeslulu/" target="_blank" style="color:var(--accent)">IG</a> ・ <a href="https://www.facebook.com/yeslulu" target="_blank" style="color:var(--accent)">FB</a> ・ <a href="https://www.threads.com/@yeslulu" target="_blank" style="color:var(--accent)">Threads</a>
 </div>
 
 </body>
